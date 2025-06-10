@@ -161,7 +161,7 @@ class workspace_wall_t::workspace_wall_node_t : public scene::node_t
 
                         render_pass_params_t params;
                         params.instances = &instances[i][j];
-                        params.damage    = std::move(visible_damage);
+                        params.damage    = visible_damage;
                         params.reference_output = self->wall->output;
                         params.target = aux;
                         params.flags  = RPASS_EMIT_SIGNALS;
