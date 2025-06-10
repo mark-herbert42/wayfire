@@ -146,5 +146,6 @@ bool operator &(const wf::geometry_t& r1, const wf::geometry_t& r2);
 
 /* Make geometry and point printable */
 std::ostream& operator <<(std::ostream& stream, const wf::geometry_t& geometry);
+std::ostream& operator <<(std::ostream& stream, const wlr_fbox& geometry);
 
 #endif /* end of include guard: WF_GEOMETRY_HPP */

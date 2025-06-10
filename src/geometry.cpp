@@ -11,6 +11,14 @@ std::ostream& operator <<(std::ostream& stream, const wf::geometry_t& geometry)
     return stream;
 }
 
+std::ostream& operator <<(std::ostream& stream, const wlr_fbox& geometry)
+{
+    stream << std::fixed << std::setprecision(2) << '(' << geometry.x << ',' << geometry.y <<
+        ' ' << geometry.width << 'x' << geometry.height << ')';
+
+    return stream;
+}
+
 std::ostream& wf::operator <<(std::ostream& stream, const wf::point_t& point)
 {
     stream << '(' << point.x << ',' << point.y << ')';
