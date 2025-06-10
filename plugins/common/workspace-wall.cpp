@@ -99,9 +99,10 @@ class workspace_wall_t::workspace_wall_node_t : public scene::node_t
             // Nonetheless, we need to make sure to rescale when this makes sense, and to avoid visual
             // artifacts.
             auto bbox = self->workspaces[i][j]->get_bounding_box();
-            const float render_scale = std::max(
+            float render_scale = std::max(
                 1.0 * bbox.width / self->wall->viewport.width,
                 1.0 * bbox.height / self->wall->viewport.height);
+            render_scale = std::min(render_scale, 1.0f);
 
             const float current_scale = self->aux_buffer_current_scale[i][j];
 
@@ -120,13 +121,14 @@ class workspace_wall_t::workspace_wall_node_t : public scene::node_t
 
             if ((repaint_cost_current_scale > repaint_rescale_cost) || rescale_magnification)
             {
-                self->aux_buffer_current_scale[i][j]  = render_scale;
-                self->aux_buffer_current_subbox[i][i] = wf::geometry_t{
-                    0, 0,
-                    int(std::ceil(render_scale * self->aux_buffers[i][j].get_size().width)),
-                    int(std::ceil(render_scale * self->aux_buffers[i][j].get_size().height)),
-                };
+                self->aux_buffer_current_scale[i][j] = render_scale;
+                const auto full_size   = self->aux_buffers[i][j].get_size();
+                const int scaled_width = std::clamp(std::ceil(render_scale * full_size.width),
+                    1.0f, 1.0f * full_size.width);
+                const int scaled_height = std::clamp(std::ceil(render_scale * full_size.height),
+                    1.0f, 1.0f * full_size.height);
 
+                self->aux_buffer_current_subbox[i][i] = wf::geometry_t{0, 0, scaled_width, scaled_height};
                 self->aux_buffer_damage[i][j] |= self->workspaces[i][j]->get_bounding_box();
                 return true;
             }
