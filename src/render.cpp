@@ -34,11 +34,24 @@ wf::auxilliary_buffer_t::~auxilliary_buffer_t()
     free();
 }
 
+static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size)
+{
+    const float MAX_BUFFER_SIZE = 4096.0f;
+    if ((size.width > MAX_BUFFER_SIZE) || (size.height > MAX_BUFFER_SIZE))
+    {
+        LOGW("Attempting to allocate a buffer which is too large ", size, "!");
+        float scale = std::min(MAX_BUFFER_SIZE / size.width, MAX_BUFFER_SIZE / size.height);
+        size.width  = std::ceil(size.width * scale);
+        size.height = std::ceil(size.height * scale);
+    }
+
+    return size;
+}
+
 bool wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale, buffer_allocation_hints_t hints)
 {
     size.width  = std::max(1.0f, std::ceil(size.width * scale));
     size.height = std::max(1.0f, std::ceil(size.height * scale));
-
     if (buffer.get_size() == size)
     {
         return false;
@@ -63,7 +76,16 @@ bool wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale, buffe
 
     if (!buffer.buffer)
     {
-        LOGE("Failed to allocate auxilliary buffer!");
+        // On some systems, we may not be able to allocate very big buffers, so try to allocate a smaller
+        // size instead.
+        size = sanitize_buffer_size(size);
+        buffer.buffer = wlr_allocator_create_buffer(wf::get_core_impl().allocator, size.width,
+            size.height, format);
+    }
+
+    if (!buffer.buffer)
+    {
+        LOGE("Failed to allocate auxilliary buffer! Size ", size, " format ", drm_fmt);
         return false;
     }
 
