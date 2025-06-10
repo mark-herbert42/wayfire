@@ -238,12 +238,6 @@ class wayfire_cube : public wf::per_output_plugin_instance_t, public wf::pointer
   public:
     void init() override
     {
-        if (!wf::get_core().is_gles2())
-        {
-            LOGE("cube: Wayfire does not support GLES2, disabling cube plugin");
-            return;
-        }
-
         input_grab = std::make_unique<wf::input_grab_t>("cube", output, nullptr, this, nullptr);
         input_grab->set_wants_raw_input(true);
 
@@ -780,6 +774,12 @@ class wayfire_cube_global : public wf::plugin_interface_t,
   public:
     void init() override
     {
+        if (!wf::get_core().is_gles2())
+        {
+            LOGE("cube: Wayfire does not support GLES2, disabling cube plugin");
+            return;
+        }
+
         this->init_output_tracking();
         rotate_left.set_handler(rotate_left_cb);
         rotate_right.set_handler(rotate_right_cb);
