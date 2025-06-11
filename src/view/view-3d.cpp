@@ -480,7 +480,7 @@ uint32_t transformer_base_node_t::optimize_update(uint32_t flags)
 wf::texture_t transformer_base_node_t::get_updated_contents(const wf::geometry_t& bbox, float scale,
     std::vector<scene::render_instance_uptr>& children)
 {
-    if (inner_content.allocate(wf::dimensions(bbox), scale))
+    if (inner_content.allocate(wf::dimensions(bbox), scale) != buffer_reallocation_result_t::SAME)
     {
         cached_damage |= bbox;
     }

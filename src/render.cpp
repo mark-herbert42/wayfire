@@ -48,13 +48,14 @@ static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size)
     return size;
 }
 
-bool wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale, buffer_allocation_hints_t hints)
+wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale,
+    buffer_allocation_hints_t hints)
 {
     size.width  = std::max(1.0f, std::ceil(size.width * scale));
     size.height = std::max(1.0f, std::ceil(size.height * scale));
     if (buffer.get_size() == size)
     {
-        return false;
+        return buffer_reallocation_result_t::SAME;
     }
 
     free();
@@ -68,7 +69,7 @@ bool wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale, buffe
     if (!format)
     {
         LOGE("Failed to find supported render format!");
-        return false;
+        return buffer_reallocation_result_t::FAILED;
     }
 
     buffer.buffer = wlr_allocator_create_buffer(wf::get_core_impl().allocator, size.width,
@@ -86,11 +87,11 @@ bool wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale, buffe
     if (!buffer.buffer)
     {
         LOGE("Failed to allocate auxilliary buffer! Size ", size, " format ", drm_fmt);
-        return false;
+        return buffer_reallocation_result_t::FAILED;
     }
 
     buffer.size = size;
-    return true;
+    return buffer_reallocation_result_t::REALLOCATED;
 }
 
 void wf::auxilliary_buffer_t::free()

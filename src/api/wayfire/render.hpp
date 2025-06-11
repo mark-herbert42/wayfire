@@ -63,6 +63,19 @@ struct buffer_allocation_hints_t
 };
 
 /**
+ * Result of an allocate() call for an auxilliary buffer.
+ */
+enum class buffer_reallocation_result_t
+{
+    /** Buffer does not need reallocation (i.e buffer already had a good size) */
+    SAME,
+    /** Buffer was successfully reallocated to the new size. */
+    REALLOCATED,
+    /** Buffer reallocation failed. */
+    FAILED,
+};
+
+/**
  * A class managing a buffer used for rendering purposes.
  * Typically, such buffers are used to composite several textures together, which are then composited onto
  * a final buffer.
@@ -87,9 +100,11 @@ struct auxilliary_buffer_t
      * @param height The desired height
      * @param scale The desired scale, so that the final size will be
      *              ceil(width * scale) x ceil(height * scale).
-     * @return True if the buffer size changed, False if the size didn't change
+     *
+     * @return The result of the reallocation operation.
      */
-    bool allocate(wf::dimensions_t size, float scale = 1.0, buffer_allocation_hints_t hints = {});
+    buffer_reallocation_result_t allocate(wf::dimensions_t size, float scale = 1.0,
+        buffer_allocation_hints_t hints = {});
 
     /**
      * Free the wlr_buffer/wlr_texture backing this framebuffer.
