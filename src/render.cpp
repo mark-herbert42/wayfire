@@ -91,13 +91,12 @@ static const wlr_drm_format *choose_format(wlr_renderer *renderer, wf::buffer_al
     return choose_format_from_set(supported_render_formats, hints);
 }
 
-static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size)
+static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size, float max_allowed_size)
 {
-    const float MAX_BUFFER_SIZE = 4096.0f;
-    if ((size.width > MAX_BUFFER_SIZE) || (size.height > MAX_BUFFER_SIZE))
+    if ((size.width > max_allowed_size) || (size.height > max_allowed_size))
     {
         LOGW("Attempting to allocate a buffer which is too large ", size, "!");
-        float scale = std::min(MAX_BUFFER_SIZE / size.width, MAX_BUFFER_SIZE / size.height);
+        float scale = std::min(max_allowed_size / size.width, max_allowed_size / size.height);
         size.width  = std::ceil(size.width * scale);
         size.height = std::ceil(size.height * scale);
     }
@@ -108,8 +107,15 @@ static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size)
 wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimensions_t size, float scale,
     buffer_allocation_hints_t hints)
 {
+    // From 16k x 16k upwards, we very often hit various limits so there is no point in allocating larger
+    // buffers. Plus, we never really need buffers that big in practice, so these usually indicate bugs in
+    // the code.
+    const int MAX_BUFFER_SIZE = 16384;
+    const int FALLBACK_MAX_BUFFER_SIZE = 4096;
     size.width  = std::max(1.0f, std::ceil(size.width * scale));
     size.height = std::max(1.0f, std::ceil(size.height * scale));
+    size = sanitize_buffer_size(size, MAX_BUFFER_SIZE);
+
     if (buffer.get_size() == size)
     {
         return buffer_reallocation_result_t::SAME;
@@ -132,7 +138,7 @@ wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimension
     {
         // On some systems, we may not be able to allocate very big buffers, so try to allocate a smaller
         // size instead.
-        size = sanitize_buffer_size(size);
+        size = sanitize_buffer_size(size, FALLBACK_MAX_BUFFER_SIZE);
         buffer.buffer = wlr_allocator_create_buffer(wf::get_core_impl().allocator, size.width,
             size.height, format);
     }
