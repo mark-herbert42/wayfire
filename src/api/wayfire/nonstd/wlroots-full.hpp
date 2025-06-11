@@ -27,6 +27,7 @@ extern "C"
 #define static
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/render/wlr_renderer.h>
+#include <wlr/render/interface.h>
 #include <wlr/render/swapchain.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/color.h>

@@ -34,6 +34,63 @@ wf::auxilliary_buffer_t::~auxilliary_buffer_t()
     free();
 }
 
+static const wlr_drm_format *choose_format_from_set(const wlr_drm_format_set *set,
+    wf::buffer_allocation_hints_t hints)
+{
+    static std::vector<uint32_t> alpha_formats = {
+        DRM_FORMAT_ARGB8888,
+        DRM_FORMAT_ABGR8888,
+        DRM_FORMAT_RGBA8888,
+        DRM_FORMAT_BGRA8888,
+    };
+
+    static std::vector<uint32_t> no_alpha_formats = {
+        DRM_FORMAT_XRGB8888,
+        DRM_FORMAT_XBGR8888,
+        DRM_FORMAT_RGBX8888,
+        DRM_FORMAT_BGRX8888,
+    };
+
+    const auto& possible_formats = hints.needs_alpha ? alpha_formats : no_alpha_formats;
+    for (auto drm_format : possible_formats)
+    {
+        if (auto layout = wlr_drm_format_set_get(set, drm_format))
+        {
+            return layout;
+        }
+    }
+
+    return nullptr;
+}
+
+static const wlr_drm_format *choose_format(wlr_renderer *renderer, wf::buffer_allocation_hints_t hints)
+{
+    auto supported_render_formats =
+        wlr_renderer_get_texture_formats(wf::get_core().renderer, renderer->render_buffer_caps);
+
+    // FIXME: in the wlroots vulkan renderer, we need to have SRGB writing support for optimal performance.
+    // The issue is that not all modifiers support SRGB. Until the wlroots issue
+    // (https://gitlab.freedesktop.org/wlroots/wlroots/-/issues/3986) is fixed, we need to somehow filter out
+    // formats that don't support SRGB. Simplest way is to patch wlroots as indicated in the issue.
+    if (renderer->impl->get_render_formats)
+    {
+        static bool initialized = false;
+        static wlr_drm_format_set performant_formats{};
+        if (!initialized)
+        {
+            auto render_fmts = renderer->impl->get_render_formats(renderer);
+            wlr_drm_format_set_intersect(&performant_formats, supported_render_formats, render_fmts);
+        }
+
+        if (auto format = choose_format_from_set(&performant_formats, hints))
+        {
+            return format;
+        }
+    }
+
+    return choose_format_from_set(supported_render_formats, hints);
+}
+
 static wf::dimensions_t sanitize_buffer_size(wf::dimensions_t size)
 {
     const float MAX_BUFFER_SIZE = 4096.0f;
@@ -61,11 +118,7 @@ wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimension
     free();
 
     auto renderer = wf::get_core().renderer;
-    auto supported_render_formats =
-        wlr_renderer_get_texture_formats(wf::get_core().renderer, renderer->render_buffer_caps);
-
-    const uint32_t drm_fmt = hints.needs_alpha ? DRM_FORMAT_ABGR8888 : DRM_FORMAT_XBGR8888;
-    auto format = wlr_drm_format_set_get(supported_render_formats, drm_fmt);
+    auto format   = choose_format(renderer, hints);
     if (!format)
     {
         LOGE("Failed to find supported render format!");
@@ -86,7 +139,7 @@ wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimension
 
     if (!buffer.buffer)
     {
-        LOGE("Failed to allocate auxilliary buffer! Size ", size, " format ", drm_fmt);
+        LOGE("Failed to allocate auxilliary buffer! Size ", size, " format ", format->format);
         return buffer_reallocation_result_t::FAILED;
     }
 
@@ -333,7 +386,6 @@ void wf::render_pass_t::add_texture(const wf::texture_t& texture, const wf::rend
     // use GL_NEAREST for integer scale.
     // GL_NEAREST makes scaled text blocky instead of blurry, which looks better
     // but only for integer scale.
-
     const auto preferred_filter = ((adjusted_target.scale - floor(adjusted_target.scale)) < 0.001) ?
         WLR_SCALE_FILTER_NEAREST : WLR_SCALE_FILTER_BILINEAR;
     opts.filter_mode = texture.filter_mode.value_or(preferred_filter);
