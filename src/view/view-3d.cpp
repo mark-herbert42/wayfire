@@ -138,11 +138,11 @@ wf::pointf_t view_2d_transformer_t::to_local(const wf::pointf_t& point)
 {
     auto midpoint = get_center(view);
     auto result   = point - midpoint;
-    result.x -= translation_x;
-    result.y -= translation_y;
-    rotate_xy(result.x, result.y, angle);
-    result.x /= scale_x;
-    result.y /= scale_y;
+    result.x -= get_translation_x();
+    result.y -= get_translation_y();
+    rotate_xy(result.x, result.y, get_angle());
+    result.x /= get_scale_x();
+    result.y /= get_scale_y();
     result   += midpoint;
     return result;
 }
@@ -152,11 +152,11 @@ wf::pointf_t view_2d_transformer_t::to_global(const wf::pointf_t& point)
     auto midpoint = get_center(view);
     auto result   = point - midpoint;
 
-    result.x *= scale_x;
-    result.y *= scale_y;
-    rotate_xy(result.x, result.y, -angle);
-    result.x += translation_x;
-    result.y += translation_y;
+    result.x *= get_scale_x();
+    result.y *= get_scale_y();
+    rotate_xy(result.x, result.y, -get_angle());
+    result.x += get_translation_x();
+    result.y += get_translation_y();
 
     return result + midpoint;
 }
@@ -201,13 +201,13 @@ class view_2d_render_instance_t :
 
     void render(const wf::scene::render_instruction_t& data) override
     {
-        if (std::abs(self->angle) < 1e-3)
+        if (std::abs(self->get_angle()) < 1e-3)
         {
             // No rotation, we can use render-agnostic functions.
             auto tex = this->get_texture(data.target.scale);
             tex.filter_mode = WLR_SCALE_FILTER_BILINEAR;
             auto bbox = self->get_bounding_box();
-            data.pass->add_texture(tex, data.target, bbox, data.damage, self->alpha);
+            data.pass->add_texture(tex, data.target, bbox, data.damage, self->get_alpha());
             return;
         }
 
@@ -218,12 +218,12 @@ class view_2d_render_instance_t :
         auto center_at = glm::translate(glm::mat4(1.0),
             {-midpoint.x, -midpoint.y, 0.0});
         auto scale = glm::scale(glm::mat4(1.0),
-            glm::vec3{self->scale_x, self->scale_y, 1.0});
-        auto rotate = glm::rotate<float>(glm::mat4(1.0), -self->angle,
+            glm::vec3{self->get_scale_x(), self->get_scale_y(), 1.0});
+        auto rotate = glm::rotate<float>(glm::mat4(1.0), -self->get_angle(),
             glm::vec3{0.0, 0.0, 1.0});
         auto translate = glm::translate(glm::mat4(1.0),
-            glm::vec3{self->translation_x + midpoint.x,
-                self->translation_y + midpoint.y, 0.0});
+            glm::vec3{self->get_translation_x() + midpoint.x,
+                self->get_translation_y() + midpoint.y, 0.0});
         auto ortho = wf::gles::render_target_orthographic_projection(data.target);
         auto full_matrix = ortho * translate * rotate * scale * center_at;
 
@@ -236,7 +236,7 @@ class view_2d_render_instance_t :
                 wf::gles::render_target_logic_scissor(data.target, wlr_box_from_pixman_box(box));
                 // OpenGL::clear({1, 0, 0, 1});
                 OpenGL::render_transformed_texture(tex, bbox, full_matrix,
-                    glm::vec4{1.0, 1.0, 1.0, self->alpha});
+                    glm::vec4{1.0, 1.0, 1.0, self->get_alpha()});
             }
         });
     }

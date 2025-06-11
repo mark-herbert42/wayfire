@@ -343,6 +343,43 @@ class view_2d_transformer_t : public transformer_base_node_t
     // does not make it opaque.
     float alpha = 1.0f;
 
+    // Often a plugin needs to apply a 2d transform where each of the attributes is computed based
+    // on other values. In order to make that simpler, the following functions can be overridden by custom
+    // transformers in order to allow dynamic changes in the scale, translation and rotation. See the
+    // crossfade animation as an example of this.
+    //
+    // Plugins applying simple 2D transformations can keep using the view_2d class directly and simply set
+    // the attributes.
+    virtual float get_scale_x() const
+    {
+        return scale_x;
+    }
+
+    virtual float get_scale_y() const
+    {
+        return scale_y;
+    }
+
+    virtual float get_translation_x() const
+    {
+        return translation_x;
+    }
+
+    virtual float get_translation_y() const
+    {
+        return translation_y;
+    }
+
+    virtual float get_angle() const
+    {
+        return angle;
+    }
+
+    virtual float get_alpha() const
+    {
+        return alpha;
+    }
+
     view_2d_transformer_t(wayfire_view view);
     wf::pointf_t to_local(const wf::pointf_t& point) override;
     wf::pointf_t to_global(const wf::pointf_t& point) override;

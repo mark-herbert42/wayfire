@@ -33,7 +33,7 @@ namespace grid
 class crossfade_node_t : public scene::view_2d_transformer_t
 {
   public:
-    wayfire_view view;
+    wayfire_toplevel_view view;
     // The contents of the view before the change.
     wf::auxilliary_buffer_t original_buffer;
 
@@ -71,6 +71,32 @@ class crossfade_node_t : public scene::view_2d_transformer_t
     std::string stringify() const override
     {
         return "crossfade";
+    }
+
+    float get_scale_x() const override
+    {
+        auto current_geometry = view->get_geometry();
+        return 1.0 * displayed_geometry.width / current_geometry.width;
+    }
+
+    float get_scale_y() const override
+    {
+        auto current_geometry = view->get_geometry();
+        return 1.0 * displayed_geometry.height / current_geometry.height;
+    }
+
+    float get_translation_x() const override
+    {
+        auto current_geometry = view->get_geometry();
+        return (displayed_geometry.x + displayed_geometry.width / 2.0) -
+               (current_geometry.x + current_geometry.width / 2.0);
+    }
+
+    float get_translation_y() const override
+    {
+        auto current_geometry = view->get_geometry();
+        return (displayed_geometry.y + displayed_geometry.height / 2.0) -
+               (current_geometry.y + current_geometry.height / 2.0);
     }
 
     void gen_render_instances(std::vector<scene::render_instance_uptr>& instances,
@@ -261,16 +287,6 @@ class grid_animation_t : public wf::custom_data_t
         auto tr = view->get_transformed_node()->get_transformer<crossfade_node_t>();
         view->get_transformed_node()->begin_transform_update();
         tr->displayed_geometry = animation;
-
-        auto geometry = view->get_geometry();
-        tr->scale_x = animation.width / geometry.width;
-        tr->scale_y = animation.height / geometry.height;
-
-        tr->translation_x = (animation.x + animation.width / 2) -
-            (geometry.x + geometry.width / 2.0);
-        tr->translation_y = (animation.y + animation.height / 2) -
-            (geometry.y + geometry.height / 2.0);
-
         tr->overlay_alpha = animation.progress();
         view->get_transformed_node()->end_transform_update();
     };
