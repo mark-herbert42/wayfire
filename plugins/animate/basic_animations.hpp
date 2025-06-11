@@ -135,7 +135,7 @@ class zoom_animation : public fade_animation::animation_base_t
             ->get_transformer<wf::scene::view_2d_transformer_t>(name);
         float c = this->progression.zoom;
 
-        our_transform->alpha   = this->progression.alpha;
+        our_transform->alpha   = std::min(1.0f, (float)this->progression.alpha);
         our_transform->scale_x = c;
         our_transform->scale_y = c;
 
