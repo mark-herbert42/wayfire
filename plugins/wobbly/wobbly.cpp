@@ -890,9 +890,9 @@ class wobbly_render_instance_t :
         auto subbox = self->get_children_bounding_box();
         wobbly_graphics::prepare_geometry(self->model.get(), subbox, vert, uv);
 
+        auto tex = wf::gles_texture_t{get_texture(data.target.scale)};
         data.pass->custom_gles_subpass(data.target, [&]
         {
-            auto tex = wf::gles_texture_t{get_texture(data.target.scale)};
             for (auto box : data.damage)
             {
                 wf::gles::render_target_logic_scissor(data.target, wlr_box_from_pixman_box(box));
