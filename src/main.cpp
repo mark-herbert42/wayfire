@@ -68,12 +68,6 @@ static bool drop_permissions(void)
     return true;
 }
 
-static wf::log::color_mode_t detect_color_mode()
-{
-    return isatty(STDOUT_FILENO) ?
-           wf::log::LOG_COLOR_MODE_ON : wf::log::LOG_COLOR_MODE_OFF;
-}
-
 static void wlr_log_handler(wlr_log_importance level,
     const char *fmt, va_list args)
 {
@@ -362,7 +356,7 @@ int main(int argc, char *argv[])
     /* Don't crash on SIGPIPE, e.g., when doing IPC to a client whose fd has been closed. */
     signal(SIGPIPE, SIG_IGN);
 
-    wf::log::initialize_logging(std::cout, log_level, detect_color_mode());
+    wf::log::initialize_logging(std::cout, log_level, wf::detect_color_mode());
 
     parse_extended_debugging(extended_debug_categories);
     wlr_log_init(WLR_DEBUG, wlr_log_handler);

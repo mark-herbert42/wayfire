@@ -1,4 +1,6 @@
+#include "main.hpp"
 #include <string>
+#include <unistd.h>
 #include <wayfire/config/option-types.hpp>
 #include <wayfire/util/log.hpp>
 #include <wayfire/debug.hpp>
@@ -357,6 +359,11 @@ std::ostream& wf::operator <<(std::ostream& out, wayfire_view view)
 
 std::bitset<(size_t)wf::log::logging_category::TOTAL> wf::log::enabled_categories;
 
+wf::log::color_mode_t wf::detect_color_mode()
+{
+    return isatty(STDOUT_FILENO) ? wf::log::LOG_COLOR_MODE_ON : wf::log::LOG_COLOR_MODE_OFF;
+}
+
 #define CLEAR_COLOR "\033[0m"
 #define GREY_COLOR "\033[30;1m"
 #define GREEN_COLOR "\033[32;1m"
@@ -366,7 +373,13 @@ std::bitset<(size_t)wf::log::logging_category::TOTAL> wf::log::enabled_categorie
 template<class... Args>
 static void color_debug_log(const char *color, Args... args)
 {
-    LOGD(color, args..., CLEAR_COLOR);
+    if (wf::detect_color_mode() == wf::log::LOG_COLOR_MODE_OFF)
+    {
+        LOGD(args...);
+    } else
+    {
+        LOGD(color, args..., CLEAR_COLOR);
+    }
 }
 
 static std::string fmt_pointer(void *ptr)
