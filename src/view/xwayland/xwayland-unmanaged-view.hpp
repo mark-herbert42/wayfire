@@ -164,11 +164,11 @@ class wayfire_unmanaged_xwayland_view : public wayfire_xwayland_view_internal_ba
          *
          * Note: only actual override-redirect views should get their focus disabled */
         kb_focus_enabled = (!xw->override_redirect ||
-            wlr_xwayland_or_surface_wants_focus(xw));
+            wlr_xwayland_surface_override_redirect_wants_focus(xw));
 
         wf::scene::readd_front(get_output()->node_for_layer(wf::scene::layer::UNMANAGED), get_root_node());
 
-        const bool wants_focus = (wlr_xwayland_icccm_input_model(xw) != WLR_ICCCM_INPUT_MODEL_NONE);
+        const bool wants_focus = (wlr_xwayland_surface_icccm_input_model(xw) != WLR_ICCCM_INPUT_MODEL_NONE);
         if (kb_focus_enabled && wants_focus)
         {
             wf::get_core().default_wm->focus_request(self());
