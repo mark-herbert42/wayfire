@@ -30,7 +30,6 @@ extern "C"
 #include <wlr/render/allocator.h>
 #include <wlr/render/gles2.h>
 #include <wlr/render/egl.h>
-#include <wlr/types/wlr_matrix.h>
 #undef static
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_viewporter.h>
