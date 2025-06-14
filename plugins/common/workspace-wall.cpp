@@ -86,7 +86,7 @@ class workspace_wall_t::workspace_wall_node_t : public scene::node_t
             return sum;
         }
 
-        bool consider_rescale_workspace_buffer(int i, int j, wf::region_t& visible_damage)
+        bool consider_rescale_workspace_buffer(int i, int j, const wf::region_t& visible_damage)
         {
             // In general, when rendering the auxilliary buffers for each workspace, we can render the
             // workspace thumbnails in a lower resolution, because at the end they are shown scaled.
@@ -128,7 +128,7 @@ class workspace_wall_t::workspace_wall_node_t : public scene::node_t
                 const int scaled_height = std::clamp(std::ceil(render_scale * full_size.height),
                     1.0f, 1.0f * full_size.height);
 
-                self->aux_buffer_current_subbox[i][i] = wf::geometry_t{0, 0, scaled_width, scaled_height};
+                self->aux_buffer_current_subbox[i][j] = wf::geometry_t{0, 0, scaled_width, scaled_height};
                 self->aux_buffer_damage[i][j] |= self->workspaces[i][j]->get_bounding_box();
                 return true;
             }
