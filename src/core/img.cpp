@@ -1,4 +1,5 @@
 #include <GLES2/gl2.h>
+#include <drm_fourcc.h>
 #include <wayfire/util/log.hpp>
 #include "wayfire/img.hpp"
 #include "wayfire/opengl.hpp"
@@ -411,25 +412,22 @@ void write_to_file(std::string name, uint8_t *pixels, int w, int h, std::string 
 
 void write_to_file(std::string name, const wf::render_buffer_t& fb)
 {
-    if (!wf::get_core().is_gles2())
+    auto tex = wlr_texture_from_buffer(wf::get_core().renderer, fb.get_buffer());
+
+    std::vector<char> buffer(tex->width * tex->height * 4);
+    wlr_texture_read_pixels_options opts{};
+    opts.data   = buffer.data();
+    opts.format = DRM_FORMAT_ABGR8888;
+    opts.stride = tex->width * 4;
+    if (!wlr_texture_read_pixels(tex, &opts))
     {
-        // TODO: we can convert the fb to a texture and use wlr_texture_read_pixels
-        LOGE("Write to file not implemented for vk/pixman yet!");
+        LOGE("failed to read pixels from texture");
+        wlr_texture_destroy(tex);
         return;
     }
 
-    std::vector<char> buffer(fb.get_size().width * fb.get_size().height * 4);
-
-    wf::gles::run_in_context_if_gles([&]
-    {
-        GLuint fb_id = wf::gles::ensure_render_buffer_fb_id(fb);
-        GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb_id));
-        GL_CALL(glReadPixels(0, 0, fb.get_size().width, fb.get_size().height,
-            GL_RGBA, GL_UNSIGNED_BYTE, buffer.data()));
-    });
-
-    write_to_file(name, (uint8_t*)buffer.data(),
-        fb.get_size().width, fb.get_size().height, "png", false);
+    write_to_file(name, (uint8_t*)buffer.data(), tex->width, tex->height, "png", false);
+    wlr_texture_destroy(tex);
 }
 
 void init()
