@@ -372,6 +372,11 @@ class wayfire_move : public wf::per_output_plugin_instance_t,
      * is released at output-local coordinates (x, y) */
     wf::grid::slot_t calc_slot(wf::point_t point)
     {
+        if (!is_snap_enabled())
+        {
+            return wf::grid::SLOT_NONE;
+        }
+
         auto g = output->workarea->get_workarea();
         if (!(output->get_relative_geometry() & point))
         {
@@ -577,10 +582,7 @@ class wayfire_move : public wf::per_output_plugin_instance_t,
     void handle_input_motion()
     {
         drag_helper->handle_motion(get_global_input_coords());
-        if (is_snap_enabled())
-        {
-            update_slot(calc_slot(get_input_coords()));
-        }
+        update_slot(calc_slot(get_input_coords()));
     }
 
     void fini() override
