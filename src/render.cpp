@@ -110,11 +110,11 @@ wf::buffer_reallocation_result_t wf::auxilliary_buffer_t::allocate(wf::dimension
     // From 16k x 16k upwards, we very often hit various limits so there is no point in allocating larger
     // buffers. Plus, we never really need buffers that big in practice, so these usually indicate bugs in
     // the code.
-    const int MAX_BUFFER_SIZE = 16384;
+    static wf::option_wrapper_t<int> max_buffer_size{"workarounds/max_buffer_size"};
     const int FALLBACK_MAX_BUFFER_SIZE = 4096;
     size.width  = std::max(1.0f, std::ceil(size.width * scale));
     size.height = std::max(1.0f, std::ceil(size.height * scale));
-    size = sanitize_buffer_size(size, MAX_BUFFER_SIZE);
+    size = sanitize_buffer_size(size, max_buffer_size);
 
     if (buffer.get_size() == size)
     {
