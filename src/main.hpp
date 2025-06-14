@@ -1,5 +1,6 @@
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#pragma once
+
+#include <wayfire/util/log.hpp>
 
 extern struct wf_runtime_config
 {
@@ -8,4 +9,7 @@ extern struct wf_runtime_config
     bool damage_debug    = false;
 } runtime_config;
 
-#endif /* end of include guard: MAIN_HPP */
+namespace wf
+{
+wf::log::color_mode_t detect_color_mode();
+}

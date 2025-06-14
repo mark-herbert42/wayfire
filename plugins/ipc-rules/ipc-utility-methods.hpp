@@ -3,6 +3,7 @@
 #include "ipc-rules-common.hpp"
 #include "wayfire/plugins/ipc/ipc-method-repository.hpp"
 #include "wayfire/debug.hpp"
+#include "wayfire/signal-definitions.hpp"
 #include <set>
 #include <wayfire/plugin.hpp>
 #include <wayfire/nonstd/wlroots-full.hpp>

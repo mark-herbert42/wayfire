@@ -63,10 +63,13 @@ enum class compositor_state_t
     /**
      * The compositor core has finished initializing.
      * Now the wlroots backends are being started, which results in
-     * adding of new input and output devices, as well as starting the
-     * plugins on each output.
+     * adding of new input and output devices.
      */
     START_BACKEND,
+    /**
+     * Both core and wlroots have finished initialization. Now plugins are being started.
+     */
+    START_PLUGINS,
     /**
      * The compositor has loaded the initial devices and plugins and is
      * running the main loop.
@@ -299,6 +302,16 @@ class compositor_core_t : public wf::object_base_t, public signal::provider_t
      * Get the root node of Wayfire's scenegraph.
      */
     virtual const std::shared_ptr<scene::root_node_t>& scene() = 0;
+
+    /**
+     * Checks whether the current renderer is a GLES2 renderer.
+     */
+    bool is_gles2() const;
+
+    /**
+     * Checks whether the current renderer is a Vulkan renderer.
+     */
+    bool is_vulkan() const;
 
     /**
      * Returns a reference to the only core instance.

@@ -1,7 +1,9 @@
 #include <GLES2/gl2.h>
+#include <drm_fourcc.h>
 #include <wayfire/util/log.hpp>
 #include "wayfire/img.hpp"
 #include "wayfire/opengl.hpp"
+#include "wayfire/core.hpp"
 
 #include <config.h>
 
@@ -408,16 +410,24 @@ void write_to_file(std::string name, uint8_t *pixels, int w, int h, std::string 
     }
 }
 
-void write_to_file(std::string name, wf::framebuffer_t fb)
+void write_to_file(std::string name, const wf::render_buffer_t& fb)
 {
-    std::vector<char> buffer(fb.viewport_width * fb.viewport_height * 4);
-    OpenGL::render_begin();
-    GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.fb));
-    GL_CALL(glReadPixels(0, 0, fb.viewport_width, fb.viewport_height,
-        GL_RGBA, GL_UNSIGNED_BYTE, buffer.data()));
-    OpenGL::render_end();
-    write_to_file(name, (uint8_t*)buffer.data(),
-        fb.viewport_width, fb.viewport_height, "png", false);
+    auto tex = wlr_texture_from_buffer(wf::get_core().renderer, fb.get_buffer());
+
+    std::vector<char> buffer(tex->width * tex->height * 4);
+    wlr_texture_read_pixels_options opts{};
+    opts.data   = buffer.data();
+    opts.format = DRM_FORMAT_ABGR8888;
+    opts.stride = tex->width * 4;
+    if (!wlr_texture_read_pixels(tex, &opts))
+    {
+        LOGE("failed to read pixels from texture");
+        wlr_texture_destroy(tex);
+        return;
+    }
+
+    write_to_file(name, (uint8_t*)buffer.data(), tex->width, tex->height, "png", false);
+    wlr_texture_destroy(tex);
 }
 
 void init()

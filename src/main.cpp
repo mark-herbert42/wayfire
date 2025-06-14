@@ -11,6 +11,7 @@
 
 #include <wayland-server.h>
 
+#include "core/opengl-priv.hpp"
 #include "wayfire/config-backend.hpp"
 #include "core/plugin-loader.hpp"
 #include "core/core-impl.hpp"
@@ -65,12 +66,6 @@ static bool drop_permissions(void)
     }
 
     return true;
-}
-
-static wf::log::color_mode_t detect_color_mode()
-{
-    return isatty(STDOUT_FILENO) ?
-           wf::log::LOG_COLOR_MODE_ON : wf::log::LOG_COLOR_MODE_OFF;
 }
 
 static void wlr_log_handler(wlr_log_importance level,
@@ -282,6 +277,7 @@ int main(int argc, char *argv[])
         {"with-great-power-comes-great-responsibility", no_argument, NULL, 'r'},
         {"help", no_argument, NULL, 'h'},
         {"version", no_argument, NULL, 'v'},
+        {"exit-on-gles-error", no_argument, NULL, '$'},
         {0, 0, NULL, 0}
     };
 
@@ -323,6 +319,10 @@ int main(int argc, char *argv[])
             print_help();
             break;
 
+          case '$':
+            OpenGL::exit_on_gles_error = true;
+            break;
+
           case 'd':
             log_level = wf::log::LOG_LEVEL_DEBUG;
 
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
     /* Don't crash on SIGPIPE, e.g., when doing IPC to a client whose fd has been closed. */
     signal(SIGPIPE, SIG_IGN);
 
-    wf::log::initialize_logging(std::cout, log_level, detect_color_mode());
+    wf::log::initialize_logging(std::cout, log_level, wf::detect_color_mode());
 
     parse_extended_debugging(extended_debug_categories);
     wlr_log_init(WLR_DEBUG, wlr_log_handler);
@@ -418,7 +418,10 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    core.renderer = wlr_gles2_renderer_create_with_drm_fd(drm_fd);
+    // core.renderer = wlr_vk_renderer_create_with_drm_fd(drm_fd);
+    core.renderer = wlr_renderer_autocreate(core.backend);
+    // core.renderer = wlr_pixman_renderer_create();
+    // core.renderer = wlr_gles2_renderer_create_with_drm_fd(drm_fd);
     if (!core.renderer)
     {
         LOGE("Failed to create renderer");
@@ -429,8 +432,12 @@ int main(int argc, char *argv[])
 
     core.allocator = wlr_allocator_autocreate(core.backend, core.renderer);
     assert(core.allocator);
-    core.egl = wlr_gles2_renderer_get_egl(core.renderer);
-    assert(core.egl);
+
+    if (core.is_gles2())
+    {
+        core.egl = wlr_gles2_renderer_get_egl(core.renderer);
+        assert(core.egl);
+    }
 
     if (!allow_root && !drop_permissions())
     {

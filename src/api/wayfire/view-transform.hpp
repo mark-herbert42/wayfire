@@ -7,7 +7,7 @@
 #include "wayfire/scene-render.hpp"
 #include "wayfire/scene.hpp"
 #include <memory>
-#include <wayfire/opengl.hpp>
+#include <wayfire/render.hpp>
 
 namespace wf
 {
@@ -51,13 +51,10 @@ class transformer_base_node_t : public scene::floating_inner_node_t
   public:
     using floating_inner_node_t::floating_inner_node_t;
 
-    uint32_t optimize_update(uint32_t flags) override
-    {
-        return optimize_nested_render_instances(shared_from_this(), flags);
-    }
+    uint32_t optimize_update(uint32_t flags) override;
 
     // A temporary buffer to render children to.
-    wf::render_target_t inner_content;
+    wf::auxilliary_buffer_t inner_content;
 
     // Damage from the children, which is the region of @inner_content that
     // should be repainted on the next frame to have a valid copy of the
@@ -65,49 +62,10 @@ class transformer_base_node_t : public scene::floating_inner_node_t
     wf::region_t cached_damage;
 
     wf::texture_t get_updated_contents(const wf::geometry_t& bbox, float scale,
-        std::vector<scene::render_instance_uptr>& children)
-    {
-        int target_width  = scale * bbox.width;
-        int target_height = scale * bbox.height;
+        std::vector<scene::render_instance_uptr>& children);
 
-        OpenGL::render_begin();
-        inner_content.scale = scale;
-        if (inner_content.allocate(target_width, target_height))
-        {
-            cached_damage |= bbox;
-        }
-
-        inner_content.geometry = bbox;
-        OpenGL::render_end();
-
-        render_pass_params_t params;
-        params.instances = &children;
-        params.target    = inner_content;
-        params.damage    = cached_damage;
-        params.background_color = {0.0f, 0.0f, 0.0f, 0.0f};
-        scene::run_render_pass(params, RPASS_CLEAR_BACKGROUND);
-
-        cached_damage.clear();
-        return wf::texture_t{inner_content.tex};
-    }
-
-    void release_buffers()
-    {
-        if (inner_content.fb != (uint) - 1)
-        {
-            // Release the inner_content buffer, because we are on
-            // the zero-copy path and we do not need an auxiliary
-            // buffer to render to.
-            OpenGL::render_begin();
-            inner_content.release();
-            OpenGL::render_end();
-        }
-    }
-
-    ~transformer_base_node_t()
-    {
-        release_buffers();
-    }
+    void release_buffers();
+    ~transformer_base_node_t();
 };
 
 /**
@@ -246,8 +204,7 @@ class transformer_render_instance_t : public render_instance_t
         }
     }
 
-    void render(const wf::render_target_t& target,
-        const wf::region_t& damage) override
+    void render(const wf::scene::render_instruction_t& data) override
     {
         wf::dassert(false, "Rendering not implemented for view transformer?");
     }
@@ -385,6 +342,43 @@ class view_2d_transformer_t : public transformer_base_node_t
     // Note that if the view was not opaque to begin with, setting alpha=1.0
     // does not make it opaque.
     float alpha = 1.0f;
+
+    // Often a plugin needs to apply a 2d transform where each of the attributes is computed based
+    // on other values. In order to make that simpler, the following functions can be overridden by custom
+    // transformers in order to allow dynamic changes in the scale, translation and rotation. See the
+    // crossfade animation as an example of this.
+    //
+    // Plugins applying simple 2D transformations can keep using the view_2d class directly and simply set
+    // the attributes.
+    virtual float get_scale_x() const
+    {
+        return scale_x;
+    }
+
+    virtual float get_scale_y() const
+    {
+        return scale_y;
+    }
+
+    virtual float get_translation_x() const
+    {
+        return translation_x;
+    }
+
+    virtual float get_translation_y() const
+    {
+        return translation_y;
+    }
+
+    virtual float get_angle() const
+    {
+        return angle;
+    }
+
+    virtual float get_alpha() const
+    {
+        return alpha;
+    }
 
     view_2d_transformer_t(wayfire_view view);
     wf::pointf_t to_local(const wf::pointf_t& point) override;
