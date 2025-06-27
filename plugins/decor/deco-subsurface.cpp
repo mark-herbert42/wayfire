@@ -40,12 +40,10 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         }
     };
 
-    void update_title(int width, int height, double scale)
+    void update_title(int width, int height, double scale, bool activated)
     {
-		bool activated = false;
         if (auto view = _view.lock())
         {
-            activated = view->activated;
             wf::dimensions_t target_size = {
                 static_cast<int32_t>(width * scale),
                 static_cast<int32_t>(height * scale)
@@ -125,7 +123,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             if (item->get_type() == wf::decor::DECORATION_AREA_TITLE)
             {
                 wf::geometry_t title_geometry = item->get_geometry() + origin;
-                update_title(title_geometry.width, title_geometry.height, data.target.scale);
+                update_title(title_geometry.width, title_geometry.height, data.target.scale, activated);
                 if (title_texture.tex.get_texture().texture != NULL)
                 {
                     data.pass->add_texture(title_texture.tex.get_texture(), data.target,
