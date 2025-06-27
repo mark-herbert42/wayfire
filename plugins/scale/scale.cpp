@@ -37,6 +37,7 @@
 #include "wayfire/toplevel-view.hpp"
 #include "wayfire/view.hpp"
 
+static constexpr const char *SCALE_TRANSFORMER = "scale";
 using namespace wf::animation;
 
 class scale_animation_t : public duration_t
@@ -132,7 +133,7 @@ class wayfire_scale : public wf::per_output_plugin_instance_t,
     std::unique_ptr<wf::input_grab_t> grab;
 
     wf::plugin_activation_data_t grab_interface{
-        .name = "scale",
+        .name = SCALE_TRANSFORMER,
         .capabilities = wf::CAPABILITY_MANAGE_DESKTOP | wf::CAPABILITY_GRAB_INPUT,
         .cancel = [=] () { finalize(); },
     };
@@ -143,7 +144,7 @@ class wayfire_scale : public wf::per_output_plugin_instance_t,
     void init() override
     {
         hook_set = false;
-        grab     = std::make_unique<wf::input_grab_t>("scale", output, this, this, this);
+        grab     = std::make_unique<wf::input_grab_t>(SCALE_TRANSFORMER, output, this, this, this);
 
         allow_scale_zoom.set_callback(allow_scale_zoom_option_changed);
 
@@ -197,15 +198,15 @@ class wayfire_scale : public wf::per_output_plugin_instance_t,
     /* Add a transformer that will be used to scale the view */
     bool add_transformer(wayfire_toplevel_view view)
     {
-        if (view->get_transformed_node()->get_transformer("scale"))
+        if (view->get_transformed_node()->get_transformer(SCALE_TRANSFORMER))
         {
             return false;
         }
 
         auto tr = std::make_shared<wf::scene::view_2d_transformer_t>(view);
         scale_data[view].transformer = tr;
-        view->get_transformed_node()->add_transformer(tr, wf::TRANSFORMER_2D,
-            "scale");
+        view->get_transformed_node()->add_transformer(tr, wf::TRANSFORMER_2D + 1,
+            SCALE_TRANSFORMER);
         /* Handle potentially minimized views by making them visible,
          * however, they start out as fully transparent. */
         if (view->minimized)
@@ -237,7 +238,7 @@ class wayfire_scale : public wf::per_output_plugin_instance_t,
         scale_transformer_removed_signal data;
         data.view = view;
         output->emit(&data);
-        view->get_transformed_node()->rem_transformer("scale");
+        view->get_transformed_node()->rem_transformer(SCALE_TRANSFORMER);
         view->disconnect(&view_unmapped);
         set_tiled_wobbly(view, false);
     }

@@ -1,7 +1,10 @@
 #ifndef XDG_SHELL_HPP
 #define XDG_SHELL_HPP
 
-#include "view-impl.hpp"
+#include <wayfire/util.hpp>
+#include <wayfire/unstable/wlr-surface-node.hpp>
+#include <wayfire/signal-definitions.hpp>
+#include <wayfire/nonstd/wlroots-full.hpp>
 #include "wayfire/geometry.hpp"
 #include "wayfire/seat.hpp"
 #include "wayfire/signal-provider.hpp"
@@ -31,7 +34,7 @@ class wayfire_xdg_popup : public wf::view_interface_t
     ~wayfire_xdg_popup();
     static std::shared_ptr<wayfire_xdg_popup> create(wlr_xdg_popup *popup);
 
-    wayfire_view popup_parent;
+    std::weak_ptr<wf::view_interface_t> popup_parent;
     wlr_xdg_popup *popup;
     void map();
     void unmap();

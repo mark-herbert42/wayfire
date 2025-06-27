@@ -76,6 +76,20 @@ struct wlr_idle_inhibitor_t : public wf::idle_inhibitor_t
     }
 };
 
+bool wf::compositor_core_t::is_gles2() const
+{
+    return wlr_renderer_is_gles2(renderer);
+}
+
+bool wf::compositor_core_t::is_vulkan() const
+{
+#if WLR_HAS_VULKAN_RENDERER
+    return wlr_renderer_is_vk(renderer);
+#else
+    return false;
+#endif
+}
+
 void wf::compositor_core_impl_t::init()
 {
     this->scene_root = std::make_shared<scene::root_node_t>();
@@ -103,8 +117,16 @@ void wf::compositor_core_impl_t::init()
     }
 
     protocols.data_device = wlr_data_device_manager_create(display);
-    protocols.primary_selection_v1 =
-        wlr_primary_selection_v1_device_manager_create(display);
+    wf::option_wrapper_t<bool> disable_primary_selection{"workarounds/disable_primary_selection"};
+    if (disable_primary_selection)
+    {
+        protocols.primary_selection_v1 = nullptr;
+    } else
+    {
+        protocols.primary_selection_v1 =
+            wlr_primary_selection_v1_device_manager_create(display);
+    }
+
     protocols.data_control = wlr_data_control_manager_v1_create(display);
 
     output_layout = std::make_unique<wf::output_layout_t>(backend);
@@ -135,7 +157,7 @@ void wf::compositor_core_impl_t::init()
         drm_lease_request.connect(&protocols.drm_v1->events.request);
     } else
     {
-        LOGE("Failed to create wlr_drm_lease_device_v1; VR will not be available!");
+        LOGI("Not using wlr_drm_lease_device_v1; VR will not be available!");
     }
 
     /* idle-inhibit setup */
@@ -207,8 +229,40 @@ void wf::compositor_core_impl_t::init()
 
     this->bindings = std::make_unique<bindings_repository_t>();
     image_io::init();
-    OpenGL::init();
+    if (is_gles2())
+    {
+        OpenGL::init();
+    }
+
+    increase_nofile_limit();
+
     this->state = compositor_state_t::START_BACKEND;
+}
+
+void wf::compositor_core_impl_t::increase_nofile_limit()
+{
+    if (getrlimit(RLIMIT_NOFILE, &user_maxfiles) != 0)
+    {
+        LOGE("Failed to getrlimit(RLIMIT_NOFILE), not increasing maximum open file descriptors. Might cause"
+             " crashes with many open views.");
+    } else
+    {
+        struct rlimit max_files = user_maxfiles;
+        max_files.rlim_cur = user_maxfiles.rlim_max;
+        if (setrlimit(RLIMIT_NOFILE, &max_files) != 0)
+        {
+            LOGE("Failed to setrlimit(RLIMIT_NOFILE), not increasing maximum open file descriptors. Might "
+                 "cause crashes with many open views.");
+        }
+    }
+}
+
+void wf::compositor_core_impl_t::restore_nofile_limit()
+{
+    if (setrlimit(RLIMIT_NOFILE, &user_maxfiles) != 0)
+    {
+        LOGE("Failed to setrlimit(RLIMIT_NOFILE), could not restore maximum open file descriptors.");
+    }
 }
 
 void wf::compositor_core_impl_t::post_init()
@@ -217,7 +271,7 @@ void wf::compositor_core_impl_t::post_init()
 
     core_backend_started_signal backend_started_ev;
     this->emit(&backend_started_ev);
-    this->state = compositor_state_t::RUNNING;
+    this->state = compositor_state_t::START_PLUGINS;
     plugin_mgr  = std::make_unique<wf::plugin_manager_t>();
     this->bindings->reparse_extensions();
 
@@ -233,12 +287,21 @@ void wf::compositor_core_impl_t::post_init()
 
     // Start processing cursor events
     seat->priv->cursor->setup_listeners();
+    this->state = compositor_state_t::RUNNING;
     core_startup_finished_signal startup_ev;
     this->emit(&startup_ev);
 }
 
 void wf::compositor_core_impl_t::shutdown()
 {
+    if (this->state < compositor_state_t::RUNNING)
+    {
+        // During initialization, shut down is a bit more complicated. We can deallocate core, but since we
+        // have not started the event loop, we can exit immediately.
+        deallocate_core();
+        std::exit(0);
+    }
+
     // We might get multiple signals in some scenarios. Shutdown only on the first instance.
     if (this->state != compositor_state_t::SHUTDOWN)
     {
@@ -267,12 +330,15 @@ void wf::compositor_core_impl_t::fini()
 
     LOGI("Unloading plugins...");
     plugin_mgr.reset();
+    _clear_data();
+
     // Shut down xwayland first, otherwise, wlroots will attempt to restart it when we kill it via
     // wl_display_destroy_clients().
     wf::fini_xwayland();
     LOGI("Stopping clients...");
     wl_display_destroy_clients(static_core->display);
     LOGI("Freeing resources...");
+    priv_output_layout_fini(output_layout.get());
     default_wm.reset();
     bindings.reset();
     scene_root.reset();
@@ -281,7 +347,6 @@ void wf::compositor_core_impl_t::fini()
     im_relay.reset();
     seat.reset();
     input.reset();
-    priv_output_layout_fini(output_layout.get());
     output_layout.reset();
     tx_manager.reset();
     OpenGL::fini();
@@ -447,6 +512,7 @@ pid_t wf::compositor_core_impl_t::run(std::string command)
     pid_t pid = fork();
     if (!pid)
     {
+        restore_nofile_limit();
         pid = fork();
         if (!pid)
         {

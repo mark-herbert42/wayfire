@@ -144,6 +144,13 @@ void wf::cursor_t::set_cursor(std::string name)
         name = "left_ptr";
     }
 
+    if (name == last_cursor_name)
+    {
+        return;
+    }
+
+    last_cursor_name = name;
+
     idle_set_cursor.run_once([name, this] ()
     {
         wlr_cursor_set_xcursor(cursor, xcursor, name.c_str());
@@ -165,6 +172,7 @@ void wf::cursor_t::hide_cursor()
     idle_set_cursor.disconnect();
     wlr_cursor_set_surface(cursor, NULL, 0, 0);
     this->hide_ref_counter++;
+    last_cursor_name.clear();
 }
 
 void wf::cursor_t::warp_cursor(wf::pointf_t point)
@@ -200,6 +208,8 @@ void wf::cursor_t::set_cursor(
     }
 
     wlr_cursor_set_surface(cursor, ev->surface, ev->hotspot_x, ev->hotspot_y);
+
+    last_cursor_name.clear();
 }
 
 void wf::cursor_t::set_touchscreen_mode(bool enabled)

@@ -36,6 +36,7 @@ pangocairo     = dependency('pangocairo')
 drm            = dependency('libdrm')
 egl            = dependency('egl')
 glesv2         = dependency('glesv2')
+vulkan         = dependency('vulkan', required: false)
 glm            = dependency('glm', required: false)
 libinput       = dependency('libinput', version: '>=1.7.0')
 pixman         = dependency('pixman-1')
@@ -75,6 +76,7 @@ wlroots_features = {
   'xwayland': false,
   'drm_backend': false,
   'gles2_renderer': false,
+  'vulkan_renderer': false,
   'libinput_backend': false,
   'session': false,
   'x11_backend': false,
@@ -87,7 +89,6 @@ endforeach
 
 required_wlroots_features= [
   'drm_backend',
-  'gles2_renderer',
   'session',
   'libinput_backend',
 ]
@@ -245,6 +246,9 @@ endif
 
 install_data('wayfire.desktop', install_dir :
     join_paths(get_option('prefix'), 'share/wayland-sessions'))
+
+install_data('wayfire-portals.conf', install_dir :
+    join_paths(get_option('prefix'), 'share/xdg-desktop-portal/'))
 
 summary = [
 	'',

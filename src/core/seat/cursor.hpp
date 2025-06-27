@@ -70,6 +70,8 @@ struct cursor_t
     wlr_cursor *cursor = NULL;
     wlr_xcursor_manager *xcursor = NULL;
 
+    std::string last_cursor_name;
+
     bool touchscreen_mode_active = false;
 };
 }

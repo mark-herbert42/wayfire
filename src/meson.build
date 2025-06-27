@@ -3,6 +3,7 @@ wayfire_sources = ['geometry.cpp',
                    'debug.cpp',
                    'util.cpp',
                    'json.cpp',
+                   'render.cpp',
 
                    'core/window-manager.cpp',
                    'core/output-layout.cpp',
@@ -152,6 +153,14 @@ public_api_requirements = [
     'wf-config',
 ]
 
+if wlroots_features['gles2_renderer']
+  public_api_requirements += glesv2
+endif
+
+if wlroots_features['vulkan_renderer']
+  public_api_requirements += vulkan
+endif
+
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
     version:      meson.project_version(),
@@ -165,3 +174,7 @@ pkgconfig.generate(
                    'icondir=${prefix}/share/wayfire/icons',
                    'pkgdatadir='+pkgdatadir]
     )
+
+devenv = environment()
+devenv.set('WAYFIRE_DEFAULT_CONFIG_BACKEND', meson.current_build_dir() + '/libdefault-config-backend.so')
+meson.add_devenv(devenv)
