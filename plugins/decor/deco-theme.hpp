@@ -39,7 +39,7 @@ class decoration_theme_t
      * Render the given text on a cairo_surface_t with the given size.
      * The caller is responsible for freeing the memory afterwards.
      */
-    cairo_surface_t *render_text(std::string text, int width, int height) const;
+    cairo_surface_t *render_text(std::string text, int width, int height, bool active) const;
 
     struct button_state_t
     {
@@ -66,6 +66,8 @@ class decoration_theme_t
 
   private:
     wf::option_wrapper_t<std::string> font{"decoration/font"};
+    wf::option_wrapper_t<wf::color_t> active_text_color{"decoration/active_text_color"};
+    wf::option_wrapper_t<wf::color_t> inactive_text_color{"decoration/inactive_text_color"};
     wf::option_wrapper_t<int> title_height{"decoration/title_height"};
     wf::option_wrapper_t<int> border_size{"decoration/border_size"};
     wf::option_wrapper_t<wf::color_t> active_color{"decoration/active_color"};

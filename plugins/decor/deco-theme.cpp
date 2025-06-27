@@ -49,7 +49,7 @@ void decoration_theme_t::render_background(const wf::scene::render_instruction_t
  * The caller is responsible for freeing the memory afterwards.
  */
 cairo_surface_t*decoration_theme_t::render_text(std::string text,
-    int width, int height) const
+    int width, int height, bool active) const
 {
     const auto format = CAIRO_FORMAT_ARGB32;
     auto surface = cairo_image_surface_create(format, width, height);
@@ -58,7 +58,7 @@ cairo_surface_t*decoration_theme_t::render_text(std::string text,
     {
         return surface;
     }
-
+    wf::color_t color = active ? active_text_color : inactive_text_color;
     auto cr = cairo_create(surface);
 
     const float font_scale = 0.8;
@@ -74,7 +74,7 @@ cairo_surface_t*decoration_theme_t::render_text(std::string text,
     layout = pango_cairo_create_layout(cr);
     pango_layout_set_font_description(layout, font_desc);
     pango_layout_set_text(layout, text.c_str(), text.size());
-    cairo_set_source_rgba(cr, 1, 1, 1, 1);
+    cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
     pango_cairo_show_layout(cr, layout);
     pango_font_description_free(font_desc);
     g_object_unref(layout);
