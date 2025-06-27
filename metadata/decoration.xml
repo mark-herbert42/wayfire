@@ -9,6 +9,16 @@
 			<_long>Sets the font to use for the title bars.</_long>
 			<default>sans-serif</default>
 		</option>
+		<option name="active_text_color" type="color">
+			<_short>Active text color</_short>
+			<_long>Sets the title text color for active window.</_long>
+			<default>#ffffffff</default>
+		</option>
+		<option name="inactive_text_color" type="color">
+			<_short>Inactive text color</_short>
+			<_long>Sets the title text color for inactive window.</_long>
+			<default>#ffffffff</default>
+		</option>
 		<option name="title_height" type="int">
 			<_short>Title bar height</_short>
 			<_long>Sets the height of the title bars in pixels.</_long>
