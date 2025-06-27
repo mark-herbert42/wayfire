@@ -42,8 +42,10 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
     void update_title(int width, int height, double scale)
     {
+		bool activated = false;
         if (auto view = _view.lock())
         {
+            activated = view->activated;
             wf::dimensions_t target_size = {
                 static_cast<int32_t>(width * scale),
                 static_cast<int32_t>(height * scale)
@@ -52,7 +54,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             if ((title_texture.tex.get_size() != target_size) ||
                 (title_texture.current_text != view->get_title()))
             {
-                auto surface = theme.render_text(view->get_title(), target_size.width, target_size.height);
+                auto surface = theme.render_text(view->get_title(), target_size.width, target_size.height, activated);
                 title_texture.tex = wf::owned_texture_t{surface};
                 cairo_surface_destroy(surface);
                 title_texture.current_text = view->get_title();
