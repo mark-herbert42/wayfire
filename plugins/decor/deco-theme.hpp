@@ -66,6 +66,7 @@ class decoration_theme_t
 
   private:
     wf::option_wrapper_t<std::string> font{"decoration/font"};
+    wf::option_wrapper_t<wf::color_t> font_color{"decoration/font_color"};
     wf::option_wrapper_t<int> title_height{"decoration/title_height"};
     wf::option_wrapper_t<int> border_size{"decoration/border_size"};
     wf::option_wrapper_t<wf::color_t> active_color{"decoration/active_color"};
